@@ -9,78 +9,109 @@ epsl_f = 1e-8
 np.random.seed(0)
 
 
-def rosenbrock(point):
-    x = point[0]
-    y = point[1]
-    return (1-x)**2 + 100*(y-x*x)**2 + 1
+# def rosenbrock(point):
+#     x = point[0]
+#     y = point[1]
+#     return (1-x)**2 + 100*(y-x*x)**2 + 1
+
+def rosenbrock(x):
+    res = 0
+    for i in range(x.size-1):
+        res += 100 * (x[i+1] - x[i]**2)**2 + (1 - x[i])**2
+    return res + 1
 
 
-def grad_rosenbrock(point):
-    x = point[0]
-    y = point[1]
-    grad = [None]*2
-    grad[0] = 400*(x**3) - 400*x*y + 2*x - 2
-    grad[1] = -200*(x*x) + 200*y
+# def grad_rosenbrock(point):
+#     x = point[0]
+#     y = point[1]
+#     grad = [None]*2
+#     grad[0] = 400*(x**3) - 400*x*y + 2*x - 2
+#     grad[1] = -200*(x*x) + 200*y
+#     return grad
+
+def grad_rosenbrock(x):
+    order = x.size
+    grad = np.zeros(order)
+
+    grad[0] = - 400 * x[1] * x[0] + 400 * x[0]**3 + 2 * x[0] - 2
+    grad[order-1] = 200 * x[order-1] - 200 * x[order-2]**2
+
+    for i in range(1, order-1):
+        grad[i] = - 400 * x[i+1] * x[i] + 400 * x[i]**3 + 202 * x[i] - 200 * x[i-1]**2 - 2
+
     return grad
 
 
-def test1(point):
-    x = point[0]
-    y = point[1]
-    return (x-1)**2 + (y-2)**2 + x*y
+# def test1(point):
+#     x = point[0]
+#     y = point[1]
+#     return (x-1)**2 + (y-2)**2 + x*y
+#
+#
+# def grad_test1(point):
+#     x = point[0]
+#     y = point[1]
+#     dirc = [None]*2
+#     dirc[0] = 2 * (x-1) + y
+#     dirc[1] = 2 * (y-2) + x
+#     return dirc
+#
+#
+# def test2(point):
+#     x = point[0]
+#     y = point[1]
+#     return (x-2)**4 + (y+1)**4 - x * y
+#
+#
+# def grad_test2(point):
+#     x = point[0]
+#     y = point[1]
+#     dirc = [None] * 2
+#     dirc[0] = 4 * (x-2)**3 - y
+#     dirc[1] = 4 * (y+1)**3 - x
+#     return dirc
 
 
-def grad_test1(point):
-    x = point[0]
-    y = point[1]
-    dirc = [None]*2
-    dirc[0] = 2 * (x-1) + y
-    dirc[1] = 2 * (y-2) + x
-    return dirc
+def normalize(v):
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        return v
+    return v / norm
 
 
-def test2(point):
-    x = point[0]
-    y = point[1]
-    return (x-2)**4 + (y+1)**4 - x * y
+def take_step(x, dirc, step):
+    dirc = normalize(dirc)
+    x_des = np.zeros(x.size)
+    for i in range(x.size):
+        x_des[i] = x[i] + step * dirc[i]
+    return x_des
 
 
-def grad_test2(point):
-    x = point[0]
-    y = point[1]
-    dirc = [None] * 2
-    dirc[0] = 4 * (x-2)**3 - y
-    dirc[1] = 4 * (y+1)**3 - x
-    return dirc
+# def gold_select(point1, point4):
+#     point3 = [None]*2
+#     point3[0] = tau * point4[0] + (1 - tau) * point1[0]
+#     point3[1] = tau * point4[1] + (1 - tau) * point1[1]
+#     return point3
+
+def gold_select(x1, x2):
+    x = np.zeros(x1.size)
+    for i in range(x.size):
+        x[i] = tau * x2[i] + (1 - tau) * x1[i]
+    return x
 
 
-def normalize(dirc):
-    length = np.sqrt(dirc[0]**2 + dirc[1]**2)
-    dirc[0] = dirc[0] / length
-    dirc[1] = dirc[1] / length
-    return dirc
+# def distance(point1, point2):
+#     return np.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2)
 
 
-def take_step(point1, dirc, step):
-    point2 = [None]*2
-    point2[0] = point1[0] + step * dirc[0]
-    point2[1] = point1[1] + step * dirc[1]
-    return point2
+# def norm(point):
+#     return np.sqrt((point[0])**2 + (point[1])**2)
 
-
-def gold_select(point1, point4):
-    point3 = [None]*2
-    point3[0] = tau * point4[0] + (1 - tau) * point1[0]
-    point3[1] = tau * point4[1] + (1 - tau) * point1[1]
-    return point3
-
-
-def distance(point1, point2):
-    return np.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2)
-
-
-def norm(point):
-    return np.sqrt((point[0])**2 + (point[1])**2)
+def normalize(v):
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        return v
+    return v / norm
 
 
 def optimizer(fx, point1, dirc, step):
@@ -90,14 +121,9 @@ def optimizer(fx, point1, dirc, step):
     f2 = fx(point2)
 
     if f2 > f1:
-        temp = point1
-        point1 = point2
-        point2 = temp
-        f_temp = f1
-        f1 = f2
-        f2 = f_temp
-        dirc[0] = -dirc[0]
-        dirc[1] = -dirc[1]
+        point1, point2 = point2, point1
+        f1, f2 = f2, f1
+        dirc = - dirc
 
     while True:
         step = step / tau
@@ -125,7 +151,7 @@ def optimizer(fx, point1, dirc, step):
 
         f_new = (f1 + f2 + f4) / 3
 
-        if distance(point1, point4) < epsl_r * norm(point2) + epsl_x:
+        if np.linalg.norm(point1-point4) < epsl_r * np.linalg.norm(point2) + epsl_x:
             break
         if abs(f_new - f_old) < epsl_r * abs(f2) + epsl_f:
             break
@@ -152,7 +178,7 @@ def coord_desc(fx, point, step):
 
         if abs(value - value_0) < epsl_f + epsl_r * value_0:
             break
-        if distance(point, point_0) < epsl_x + epsl_r * norm(point_0):
+        if np.linalg.norm(point-point_0) < epsl_x + epsl_r * np.linalg.norm(point_0):
             break
         # if count > 1e6:
         #     break
@@ -171,16 +197,14 @@ def steep_desc(fx, grad_fx, point, step):
 
     while True:
         dirc = grad_fx(point)
-        dirc[0] = -dirc[0]
-        dirc[1] = -dirc[1]
-        dirc = normalize(dirc)
+        dirc = - dirc
 
         point, value = optimizer(fx, point, dirc, step)
         count = count + 1
 
         if abs(value - value_0) < epsl_f + epsl_r * value_0:
             break
-        if distance(point, point_0) < epsl_x + epsl_r * norm(point_0):
+        if np.linalg.norm(point-point_0) < epsl_x + epsl_r * np.linalg.norm(point_0):
             break
 
         point_0 = point
